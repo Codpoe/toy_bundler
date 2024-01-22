@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+authors = ["Codpoe <codpoe.me@gmail.com>"]
+categories = ["development-tools", "web-programming", "bundler"]
+description = "A toy bundler powered by oxc, just for learning rust."
+keywords = ["JavaScript", "TypeScript", "bundler"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/codpoe/toy_bundler"

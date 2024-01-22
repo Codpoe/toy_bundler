@@ -1,0 +1,20 @@
+[package]
+name = "toy"
+version = "0.1.0"
+authors.workspace = true
+categories.workspace = true
+description.workspace = true
+keywords.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lightningcss = "1.0.0-alpha.52"
+oxc = "0.5.0"
+petgraph = "0.6.4"
+rayon = "1.8.1"
+swc_html = "0.135.25"
+thiserror = "1.0.56"
