@@ -26,7 +26,8 @@ pub struct Compiler {
 
 impl Compiler {
   pub fn new(config: Config, mut plugins: Vec<Arc<dyn Plugin>>) -> Self {
-    let mut final_plugins: Vec<Arc<dyn Plugin>> = vec![Arc::new(PluginResolve::new())];
+    let mut final_plugins: Vec<Arc<dyn Plugin>> =
+      vec![Arc::new(PluginResolve::new(config.resolve.clone()))];
 
     final_plugins.append(&mut plugins);
     final_plugins.sort_by_key(|plugin| plugin.priority());

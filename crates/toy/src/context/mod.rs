@@ -20,7 +20,7 @@ impl CompilationContext {
   pub fn new(mut config: Config, plugins: Vec<Arc<dyn Plugin>>) -> Self {
     let plugin_container = PluginContainer::new(plugins);
 
-    plugin_container.config(&mut config);
+    plugin_container.config(&mut config).unwrap();
 
     Self {
       config,

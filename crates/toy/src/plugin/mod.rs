@@ -28,6 +28,7 @@ pub struct ResolveHookParams {
 pub struct ResolveHookResult {
   pub id: String,
   pub query: HashMap<String, String>,
+  pub external: bool,
 }
 
 #[derive(Debug)]
