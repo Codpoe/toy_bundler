@@ -9,8 +9,18 @@ pub enum CompilationError {
   GenericError(String),
 
   // resolve
-  #[error("Hook `resolve` execute failed. Error: {source:?}")]
+  #[error("Can not resolve `{src}` from `{base}`.\nError: {source:?}")]
   ResolveError {
+    src: String,
+    base: String,
+    #[source]
+    source: Option<Box<dyn Error + Send + Sync>>,
+  },
+
+  // resolve
+  #[error("Load `{id}` failed.\nError: {source:?}")]
+  LoadError {
+    id: String,
     #[source]
     source: Option<Box<dyn Error + Send + Sync>>,
   },

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use oxc_resolver::{ResolveOptions, Resolver};
 
@@ -36,6 +36,13 @@ impl Plugin for PluginResolve {
       &params
         .importer
         .clone()
+        .map(|p| {
+          PathBuf::from(p)
+            .parent()
+            .unwrap()
+            .to_string_lossy()
+            .to_string()
+        })
         .unwrap_or(context.config.root.clone()),
     )
     .map(|v| Some(v))
@@ -51,6 +58,8 @@ fn resolve_id(resolver: &Resolver, source: &str, base: &str) -> Result<ResolveHo
     resolver
       .resolve(base.to_string(), source)
       .map_err(|err| CompilationError::ResolveError {
+        src: source.to_string(),
+        base: base.to_string(),
         source: Some(Box::new(err)),
       })?;
 
@@ -100,27 +109,26 @@ mod tests {
         ".jsx".to_string(),
         ".ts".to_string(),
         ".tsx".to_string(),
-        ".rs".to_string(),
       ],
       main_fields: vec![
         "browser".to_string(),
         "module".to_string(),
         "main".to_string(),
       ],
-      main_files: vec!["index".to_string(), "lib".to_string()],
+      main_files: vec!["index".to_string()],
       ..ResolveOptions::default()
     });
 
     let res = resolve_id(
       &resolver,
-      "./src/lib?foo=bar",
+      "../../fixtures/basic/index?foo=bar",
       env::current_dir().unwrap().to_str().unwrap(),
     )
     .unwrap();
 
     assert_eq!(
       res.id,
-      fs::canonicalize("./src/lib.rs")
+      fs::canonicalize("../../fixtures/basic/index.js")
         .unwrap()
         .to_string_lossy()
         .to_string()
@@ -129,26 +137,16 @@ mod tests {
     assert_eq!(res.query.get("foo").unwrap(), "bar");
     assert!(!res.external);
 
-    let source = format!(
-      "{}/{}",
-      env::current_dir().unwrap().to_string_lossy().to_string(),
-      "src"
-    );
+    let source = fs::canonicalize("../../fixtures/basic/index.js").unwrap();
 
     let res = resolve_id(
       &resolver,
-      &source,
+      source.parent().unwrap().to_str().unwrap(),
       env::current_dir().unwrap().to_str().unwrap(),
     )
     .unwrap();
 
-    assert_eq!(
-      res.id,
-      fs::canonicalize("./src/lib.rs")
-        .unwrap()
-        .to_string_lossy()
-        .to_string()
-    );
+    assert_eq!(res.id, source.to_string_lossy().to_string());
 
     assert!(res.query.is_empty());
     assert!(!res.external);

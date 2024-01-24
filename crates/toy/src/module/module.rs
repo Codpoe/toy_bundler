@@ -1,7 +1,9 @@
+use ouroboros::self_referencing;
+use oxc::{allocator::Allocator, ast::ast::Program, parser::Parser, span::SourceType};
 use std::{any::Any, collections::HashSet, ffi::OsStr, path::Path};
 use swc_html::ast::Document;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModuleKind {
   Html,
   Css,
@@ -22,7 +24,7 @@ impl ModuleKind {
     match ext {
       "html" => Self::Html,
       "css" => Self::Css,
-      "js" => Self::Js,
+      "js" | "cjs" | "mjs" => Self::Js,
       "jsx" => Self::Jsx,
       "ts" => Self::Ts,
       "tsx" => Self::Tsx,
@@ -38,9 +40,20 @@ impl ModuleKind {
     let ext = Path::new(path).extension().unwrap_or_default();
     Self::from_ext(ext.to_str().unwrap_or("unknown"))
   }
+
+  pub fn is_html(&self) -> bool {
+    matches!(self, Self::Html)
+  }
+
+  pub fn is_css(&self) -> bool {
+    matches!(self, Self::Css)
+  }
+
+  pub fn is_script(&self) -> bool {
+    matches!(self, Self::Js | Self::Jsx | Self::Ts | Self::Tsx)
+  }
 }
 
-#[derive(Debug)]
 pub enum ModuleMeta {
   Html(HtmlModuleMeta),
   Css(CssModuleMeta),
@@ -58,12 +71,45 @@ pub struct CssModuleMeta {
   pub ast: Box<dyn Any + Send + Sync>,
 }
 
-#[derive(Debug)]
-pub struct ScriptModuleMeta {
-  pub ast: Box<dyn Any + Send + Sync>,
+pub struct ScriptProgram<'a>(pub Program<'a>);
+
+unsafe impl<'a> Send for ScriptProgram<'a> {}
+unsafe impl<'a> Sync for ScriptProgram<'a> {}
+
+pub struct ScriptAllocator(Allocator);
+
+unsafe impl Send for ScriptAllocator {}
+unsafe impl Sync for ScriptAllocator {}
+
+#[self_referencing]
+pub struct ScriptAst {
+  allocator: ScriptAllocator,
+  source_text: String,
+  source_type: SourceType,
+  #[borrows(allocator, source_text, source_type)]
+  #[not_covariant]
+  pub program: &'this ScriptProgram<'this>,
 }
 
-#[derive(Debug)]
+impl ScriptAst {
+  pub fn build(source_text: String, source_type: SourceType) -> Self {
+    ScriptAstBuilder {
+      allocator: ScriptAllocator(Allocator::default()),
+      source_text,
+      source_type,
+      program_builder: |allocator, source_text, source_type| {
+        let ret = Parser::new(&allocator.0, source_text, source_type.to_owned()).parse();
+        allocator.0.alloc(ScriptProgram(ret.program))
+      },
+    }
+    .build()
+  }
+}
+
+pub struct ScriptModuleMeta {
+  pub ast: ScriptAst,
+}
+
 pub struct Module {
   pub id: String,
   pub kind: ModuleKind,
@@ -72,11 +118,11 @@ pub struct Module {
 }
 
 impl Module {
-  pub fn new(id: String, kind: ModuleKind) -> Self {
+  pub fn new(id: String, kind: ModuleKind, meta: Option<ModuleMeta>) -> Self {
     Self {
       id,
       kind,
-      meta: ModuleMeta::Custom(Box::new(())),
+      meta: meta.unwrap_or(ModuleMeta::Custom(Box::new(()))),
       module_groups: HashSet::new(),
     }
   }

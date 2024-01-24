@@ -26,7 +26,7 @@ pub struct ModuleGraphEdge {
 pub struct ModuleGraph {
   graph: StableDiGraph<Module, ModuleGraphEdge>,
   id_to_index: HashMap<String, NodeIndex>,
-  entries: HashSet<String>,
+  pub entries: HashSet<String>,
 }
 
 impl ModuleGraph {

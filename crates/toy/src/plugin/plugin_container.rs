@@ -22,9 +22,9 @@ use super::{
 
 #[derive(Debug)]
 pub struct PluginContainerTransformHookResult {
-  content: String,
-  module_kind: ModuleKind,
-  source_map_chain: Vec<String>,
+  pub content: String,
+  pub module_kind: ModuleKind,
+  pub source_map_chain: Vec<String>,
 }
 
 pub struct PluginContainer {

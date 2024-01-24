@@ -7,8 +7,10 @@ use std::sync::{
 use crate::{
   context::CompilationContext,
   error::{CompilationError, Result},
-  module::ResolveKind,
-  plugin::ResolveHookParams,
+  module::{module_graph::ModuleGraphEdge, ResolveKind},
+  plugin::{
+    AnalyzeDepsHookParams, LoadHookParams, ParseHookParams, ResolveHookParams, TransformHookParams,
+  },
   Compiler,
 };
 
@@ -53,6 +55,8 @@ impl Compiler {
     resolve_hook_params: ResolveHookParams,
     context: Arc<CompilationContext>,
   ) {
+    let c_thread_pool = thread_pool.clone();
+
     thread_pool.spawn(move || {
       macro_rules! call_and_catch_error {
         ($func:ident, $($arg:expr),*) => {
@@ -67,18 +71,86 @@ impl Compiler {
       }
 
       // resolve
-      let resolve_result = call_and_catch_error!(resolve, &resolve_hook_params, &context);
-      println!(">>> {resolve_result:?}");
+      let resolve_result = call_and_catch_error!(resolve, &resolve_hook_params, &context).unwrap();
+      println!(">>> resolve_result: {resolve_result:#?}");
 
       // load
+      let load_params = LoadHookParams {
+        id: &resolve_result.id,
+        query: resolve_result.query.clone(),
+      };
+      let load_result = call_and_catch_error!(load, &load_params, &context).unwrap();
+      println!(">>> load_result: {load_result:#?}");
 
       // transform
+      let transform_params = TransformHookParams {
+        id: &resolve_result.id,
+        query: resolve_result.query.clone(),
+        content: load_result.content,
+        module_kind: load_result.module_kind,
+      };
+      let transform_result = call_and_catch_error!(transform, transform_params, &context);
+      println!(">>> transform_result: {transform_result:#?}");
 
       // parse
+      let parse_params = ParseHookParams {
+        id: &resolve_result.id,
+        query: resolve_result.query.clone(),
+        content: transform_result.content,
+        module_kind: transform_result.module_kind,
+      };
+      let module = call_and_catch_error!(parse, &parse_params, &context).unwrap();
 
       // analyze deps
+      let mut analyze_deps_params = AnalyzeDepsHookParams {
+        module: &module,
+        deps: vec![],
+      };
+      call_and_catch_error!(analyze_deps, &mut analyze_deps_params, &context);
+
+      let deps = analyze_deps_params.deps;
+      println!(">>> analyze_deps {:?} -> {:#?}", resolve_result.id, deps);
+
+      // build module_graph
+      let module_id = module.id.clone();
+      let mut module_graph = context.module_graph.write().unwrap();
+
+      module_graph.add_module(module);
+
+      if matches!(resolve_hook_params.kind, ResolveKind::Entry) {
+        module_graph.entries.insert(module_id.clone());
+      }
+
+      if let Some(importer) = resolve_hook_params.importer {
+        module_graph
+          .add_edge(
+            &importer,
+            &module_id,
+            ModuleGraphEdge {
+              kind: resolve_hook_params.kind.clone(),
+              source: resolve_hook_params.source.clone(),
+              order,
+            },
+          )
+          .unwrap()
+      }
+
+      drop(module_graph);
 
       // build_module recursively
+      for (order, dep) in deps.iter().enumerate() {
+        Self::build_module(
+          c_thread_pool.clone(),
+          err_sender.clone(),
+          order,
+          ResolveHookParams {
+            source: dep.source.clone(),
+            importer: Some(module_id.clone()),
+            kind: dep.resolve_kind.clone(),
+          },
+          context.clone(),
+        );
+      }
     });
   }
 }

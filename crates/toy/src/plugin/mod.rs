@@ -66,10 +66,15 @@ pub struct ParseHookParams<'a> {
   pub module_kind: ModuleKind,
 }
 
-#[derive(Debug)]
 pub struct AnalyzeDepsHookParams<'a> {
-  pub module: Module,
-  pub deps: &'a Vec<String>,
+  pub module: &'a Module,
+  pub deps: Vec<AnalyzeDep>,
+}
+
+#[derive(Debug)]
+pub struct AnalyzeDep {
+  pub source: String,
+  pub resolve_kind: ResolveKind,
 }
 
 pub trait Plugin: Any + Send + Sync {
@@ -79,103 +84,103 @@ pub trait Plugin: Any + Send + Sync {
     DEFAULT_PRIORITY
   }
 
-  fn config(&self, config: &mut Config) -> Result<()> {
+  fn config(&self, _config: &mut Config) -> Result<()> {
     Ok(())
   }
 
-  fn build_start(&self, context: &Arc<CompilationContext>) -> Result<()> {
+  fn build_start(&self, _context: &Arc<CompilationContext>) -> Result<()> {
     Ok(())
   }
 
   fn resolve(
     &self,
-    params: &ResolveHookParams,
-    context: &Arc<CompilationContext>,
+    _params: &ResolveHookParams,
+    _context: &Arc<CompilationContext>,
   ) -> Result<Option<ResolveHookResult>> {
     Ok(None)
   }
 
   fn load(
     &self,
-    params: &LoadHookParams,
-    context: &Arc<CompilationContext>,
+    _params: &LoadHookParams,
+    _context: &Arc<CompilationContext>,
   ) -> Result<Option<LoadHookResult>> {
     Ok(None)
   }
 
   fn transform(
     &self,
-    params: &TransformHookParams,
-    context: &Arc<CompilationContext>,
+    _params: &TransformHookParams,
+    _context: &Arc<CompilationContext>,
   ) -> Result<Option<TransformHookResult>> {
     Ok(None)
   }
 
   fn parse(
     &self,
-    params: &ParseHookParams,
-    context: &Arc<CompilationContext>,
+    _params: &ParseHookParams,
+    _context: &Arc<CompilationContext>,
   ) -> Result<Option<Module>> {
     Ok(None)
   }
 
   fn analyze_deps(
     &self,
-    params: &mut AnalyzeDepsHookParams,
-    context: &Arc<CompilationContext>,
+    _params: &mut AnalyzeDepsHookParams,
+    _context: &Arc<CompilationContext>,
   ) -> Result<()> {
     Ok(())
   }
 
-  fn build_end(&self, context: &Arc<CompilationContext>) -> Result<()> {
+  fn build_end(&self, _context: &Arc<CompilationContext>) -> Result<()> {
     Ok(())
   }
 
-  fn generate_start(&self, context: &Arc<CompilationContext>) -> Result<()> {
+  fn generate_start(&self, _context: &Arc<CompilationContext>) -> Result<()> {
     Ok(())
   }
 
   fn analyze_module_graph(
     &self,
-    module_graph: &mut ModuleGraph,
-    context: &Arc<CompilationContext>,
+    _module_graph: &mut ModuleGraph,
+    _context: &Arc<CompilationContext>,
   ) -> Result<Option<ModuleGroupMap>> {
     Ok(None)
   }
 
   fn analyze_module_group(
     &self,
-    module_group: &mut ModuleGroup,
-    context: &Arc<CompilationContext>,
+    _module_group: &mut ModuleGroup,
+    _context: &Arc<CompilationContext>,
   ) -> Result<Option<Vec<ResourcePot>>> {
     Ok(None)
   }
 
   fn render_resource_pot(
     &self,
-    resource_pot: &mut ResourcePot,
-    context: &Arc<CompilationContext>,
+    _resource_pot: &mut ResourcePot,
+    _context: &Arc<CompilationContext>,
   ) -> Result<()> {
     Ok(())
   }
 
   fn generate_resources(
     &self,
-    resource_pot: &mut ResourcePot,
-    context: &Arc<CompilationContext>,
+    _resource_pot: &mut ResourcePot,
+    _context: &Arc<CompilationContext>,
   ) -> Result<Option<ResourceMap>> {
     Ok(None)
   }
 
   fn write_resources(
     &self,
-    resources: &mut ResourceMap,
-    context: &Arc<CompilationContext>,
+    _resources: &mut ResourceMap,
+    _context: &Arc<CompilationContext>,
   ) -> Result<()> {
     Ok(())
   }
 
-  fn generate_end(&self, context: &Arc<CompilationContext>) -> Result<()> {
+  fn generate_end(&self, _context: &Arc<CompilationContext>) -> Result<()> {
     Ok(())
   }
 }

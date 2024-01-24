@@ -4,12 +4,12 @@ use config::Config;
 use context::CompilationContext;
 use error::Result;
 use plugin::Plugin;
-use plugins::resolve::PluginResolve;
+use plugins::{resolve::PluginResolve, script::PluginScript};
 
 mod build;
 mod config;
 mod context;
-mod error;
+pub mod error;
 mod generate;
 mod module;
 mod plugin;
@@ -26,8 +26,10 @@ pub struct Compiler {
 
 impl Compiler {
   pub fn new(config: Config, mut plugins: Vec<Arc<dyn Plugin>>) -> Self {
-    let mut final_plugins: Vec<Arc<dyn Plugin>> =
-      vec![Arc::new(PluginResolve::new(config.resolve.clone()))];
+    let mut final_plugins: Vec<Arc<dyn Plugin>> = vec![
+      Arc::new(PluginResolve::new(config.resolve.clone())),
+      Arc::new(PluginScript::new()),
+    ];
 
     final_plugins.append(&mut plugins);
     final_plugins.sort_by_key(|plugin| plugin.priority());
@@ -49,11 +51,23 @@ impl Compiler {
 
 #[cfg(test)]
 mod tests {
+  use std::{collections::HashMap, fs};
+
   use super::*;
 
   #[test]
   fn it_works() {
-    let mut compiler = Compiler::new(Config::default(), vec![]);
+    let mut compiler = Compiler::new(
+      Config {
+        root: fs::canonicalize("../../fixtures/basic")
+          .unwrap()
+          .to_string_lossy()
+          .to_string(),
+        input: HashMap::from([("main".to_string(), "./index.js".to_string())]),
+        ..Config::default()
+      },
+      vec![],
+    );
     compiler.compile().unwrap();
   }
 }

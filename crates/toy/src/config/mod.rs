@@ -19,9 +19,9 @@ impl Default for Config {
   fn default() -> Self {
     Self {
       root: env::current_dir().unwrap().to_string_lossy().to_string(),
-      input: HashMap::from([("main".to_string(), "index.html".to_string())]),
+      input: HashMap::from([("main".to_string(), "./index.html".to_string())]),
       output: OutputConfig {
-        dir: "dist".to_string(),
+        dir: "./dist".to_string(),
       },
       resolve: ResolveOptions {
         extensions: vec![
