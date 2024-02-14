@@ -5,11 +5,11 @@ use crate::{
   module::{
     module::{Module, ModuleKind},
     module_graph::ModuleGraph,
-    module_group::{ModuleGroup, ModuleGroupMap},
+    module_group::ModuleGroupMap,
   },
   resource::{
     resource::{Resource, ResourceMap},
-    resource_pot::ResourcePot,
+    resource_pot::{ResourcePot, ResourcePotMap},
   },
 };
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -135,13 +135,17 @@ impl PluginContainer {
 
   hook_parallel!(build_end);
 
+  hook_parallel!(generate_start);
+
   hook_first!(analyze_module_graph, module_graph: &mut ModuleGraph, ModuleGroupMap);
 
-  hook_first!(analyze_module_group, module_group: &mut ModuleGroup, Vec<ResourcePot>);
+  hook_first!(merge_modules, module_group_map: &mut ModuleGroupMap, ResourcePotMap);
 
   hook_serial!(render_resource_pot, resource_pot: &mut ResourcePot);
 
   hook_first!(generate_resources, resource_pot: &mut ResourcePot, HashMap<String, Resource>);
 
   hook_serial!(write_resources, resources: &mut ResourceMap);
+
+  hook_parallel!(generate_end);
 }

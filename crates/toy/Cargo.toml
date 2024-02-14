@@ -14,9 +14,10 @@ repository.workspace = true
 [dependencies]
 lightningcss = "1.0.0-alpha.52"
 ouroboros = "0.18.3"
-oxc = "0.5.0"
-oxc_resolver = "1.2.1"
+oxc = { version = "0.6.0", features = ["codegen"] }
+oxc_resolver = "1.4.0"
 petgraph = "0.6.4"
 rayon = "1.8.1"
+ring = "0.17.7"
 swc_html = "0.135.25"
 thiserror = "1.0.56"

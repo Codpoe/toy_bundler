@@ -7,10 +7,13 @@ use crate::{
   module::{
     module::{Module, ModuleKind},
     module_graph::ModuleGraph,
-    module_group::{ModuleGroup, ModuleGroupMap},
+    module_group::ModuleGroupMap,
     ResolveKind,
   },
-  resource::{resource::ResourceMap, resource_pot::ResourcePot},
+  resource::{
+    resource::ResourceMap,
+    resource_pot::{ResourcePot, ResourcePotMap},
+  },
 };
 
 pub mod plugin_container;
@@ -32,8 +35,8 @@ pub struct ResolveHookResult {
 }
 
 #[derive(Debug)]
-pub struct LoadHookParams<'a> {
-  pub id: &'a str,
+pub struct LoadHookParams {
+  pub id: String,
   pub query: HashMap<String, String>,
 }
 
@@ -44,8 +47,8 @@ pub struct LoadHookResult {
 }
 
 #[derive(Debug)]
-pub struct TransformHookParams<'a> {
-  pub id: &'a str,
+pub struct TransformHookParams {
+  pub id: String,
   pub query: HashMap<String, String>,
   pub content: String,
   pub module_kind: ModuleKind,
@@ -59,8 +62,8 @@ pub struct TransformHookResult {
 }
 
 #[derive(Debug)]
-pub struct ParseHookParams<'a> {
-  pub id: &'a str,
+pub struct ParseHookParams {
+  pub id: String,
   pub query: HashMap<String, String>,
   pub content: String,
   pub module_kind: ModuleKind,
@@ -148,11 +151,11 @@ pub trait Plugin: Any + Send + Sync {
     Ok(None)
   }
 
-  fn analyze_module_group(
+  fn merge_modules(
     &self,
-    _module_group: &mut ModuleGroup,
+    _module_group_map: &mut ModuleGroupMap,
     _context: &Arc<CompilationContext>,
-  ) -> Result<Option<Vec<ResourcePot>>> {
+  ) -> Result<Option<ResourcePotMap>> {
     Ok(None)
   }
 

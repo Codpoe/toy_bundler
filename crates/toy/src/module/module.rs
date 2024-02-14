@@ -1,7 +1,7 @@
-use ouroboros::self_referencing;
-use oxc::{allocator::Allocator, ast::ast::Program, parser::Parser, span::SourceType};
 use std::{any::Any, collections::HashSet, ffi::OsStr, path::Path};
 use swc_html::ast::Document;
+
+use crate::oxc::{OxcProgram, OxcProgramWrapper};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModuleKind {
@@ -45,7 +45,7 @@ impl ModuleKind {
     matches!(self, Self::Html)
   }
 
-  pub fn is_css(&self) -> bool {
+  pub fn is_style(&self) -> bool {
     matches!(self, Self::Css)
   }
 
@@ -61,6 +61,29 @@ pub enum ModuleMeta {
   Custom(Box<dyn Any + Send + Sync>),
 }
 
+impl ModuleMeta {
+  pub fn as_html(&self) -> &HtmlModuleMeta {
+    match self {
+      Self::Html(meta) => meta,
+      _ => unreachable!("ModuleMeta `as_html()` failed"),
+    }
+  }
+
+  pub fn as_css(&self) -> &CssModuleMeta {
+    match self {
+      Self::Css(meta) => meta,
+      _ => unreachable!("ModuleMeta `as_css()` failed"),
+    }
+  }
+
+  pub fn as_script(&self) -> &ScriptModuleMeta {
+    match self {
+      Self::Script(meta) => meta,
+      _ => unreachable!("ModuleMeta `as_script()` failed"),
+    }
+  }
+}
+
 #[derive(Debug)]
 pub struct HtmlModuleMeta {
   pub ast: Document,
@@ -71,43 +94,9 @@ pub struct CssModuleMeta {
   pub ast: Box<dyn Any + Send + Sync>,
 }
 
-pub struct ScriptProgram<'a>(pub Program<'a>);
-
-unsafe impl<'a> Send for ScriptProgram<'a> {}
-unsafe impl<'a> Sync for ScriptProgram<'a> {}
-
-pub struct ScriptAllocator(Allocator);
-
-unsafe impl Send for ScriptAllocator {}
-unsafe impl Sync for ScriptAllocator {}
-
-#[self_referencing]
-pub struct ScriptAst {
-  allocator: ScriptAllocator,
-  source_text: String,
-  source_type: SourceType,
-  #[borrows(allocator, source_text, source_type)]
-  #[not_covariant]
-  pub program: &'this ScriptProgram<'this>,
-}
-
-impl ScriptAst {
-  pub fn build(source_text: String, source_type: SourceType) -> Self {
-    ScriptAstBuilder {
-      allocator: ScriptAllocator(Allocator::default()),
-      source_text,
-      source_type,
-      program_builder: |allocator, source_text, source_type| {
-        let ret = Parser::new(&allocator.0, source_text, source_type.to_owned()).parse();
-        allocator.0.alloc(ScriptProgram(ret.program))
-      },
-    }
-    .build()
-  }
-}
-
 pub struct ScriptModuleMeta {
-  pub ast: ScriptAst,
+  pub code: String,
+  pub ast: OxcProgram,
 }
 
 pub struct Module {

@@ -1,13 +1,13 @@
-use std::{
-  any::Any,
-  collections::{HashMap, HashSet},
-};
-
+use oxc::{allocator::Box as OxcBox, ast::ast::Program};
+use std::{any::Any, collections::HashMap};
 use swc_html::ast::Document;
 
-use crate::module::module::ModuleKind;
+use crate::{
+  module::module::ModuleKind,
+  oxc::{OxcProgram, OxcProgramWrapper},
+};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ResourcePotKind {
   Runtime,
   Html,
@@ -49,7 +49,8 @@ pub struct CssResourcePotMeta {
 
 #[derive(Debug)]
 pub struct JsResourcePotMeta {
-  pub ast: Box<dyn Any + Send + Sync>,
+  pub ast: Option<Box<dyn Any + Send + Sync>>,
+  pub code: String,
 }
 
 #[derive(Debug)]
@@ -57,19 +58,19 @@ pub struct ResourcePot {
   pub id: String,
   pub kind: ResourcePotKind,
   pub module_group_id: String,
-  pub module_ids: HashSet<String>,
-  pub resource_ids: HashSet<String>,
+  pub module_ids: Vec<String>,
+  pub resource_ids: Vec<String>,
   pub meta: ResourcePotMeta,
 }
 
 impl ResourcePot {
   pub fn new(id: String, kind: ResourcePotKind, module_group_id: String) -> Self {
     Self {
-      id,
+      id: id.clone(),
       kind,
       module_group_id,
-      module_ids: HashSet::new(),
-      resource_ids: HashSet::new(),
+      module_ids: vec![id],
+      resource_ids: vec![],
       meta: ResourcePotMeta::Custom(Box::new(())),
     }
   }

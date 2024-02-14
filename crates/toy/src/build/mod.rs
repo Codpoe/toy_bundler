@@ -16,6 +16,8 @@ use crate::{
 
 impl Compiler {
   pub(crate) fn build(&mut self) -> Result<()> {
+    self.context.plugin_container.build_start(&self.context)?;
+
     let thread_pool = Arc::new(rayon::ThreadPoolBuilder::new().build().unwrap());
     let (err_sender, err_receiver) = channel::<CompilationError>();
 
@@ -56,6 +58,7 @@ impl Compiler {
     context: Arc<CompilationContext>,
   ) {
     let c_thread_pool = thread_pool.clone();
+    let context = context.clone();
 
     thread_pool.spawn(move || {
       macro_rules! call_and_catch_error {
@@ -76,7 +79,7 @@ impl Compiler {
 
       // load
       let load_params = LoadHookParams {
-        id: &resolve_result.id,
+        id: resolve_result.id.clone(),
         query: resolve_result.query.clone(),
       };
       let load_result = call_and_catch_error!(load, &load_params, &context).unwrap();
@@ -84,7 +87,7 @@ impl Compiler {
 
       // transform
       let transform_params = TransformHookParams {
-        id: &resolve_result.id,
+        id: resolve_result.id.clone(),
         query: resolve_result.query.clone(),
         content: load_result.content,
         module_kind: load_result.module_kind,
@@ -94,7 +97,7 @@ impl Compiler {
 
       // parse
       let parse_params = ParseHookParams {
-        id: &resolve_result.id,
+        id: resolve_result.id.clone(),
         query: resolve_result.query.clone(),
         content: transform_result.content,
         module_kind: transform_result.module_kind,
@@ -148,7 +151,7 @@ impl Compiler {
             importer: Some(module_id.clone()),
             kind: dep.resolve_kind.clone(),
           },
-          context.clone(),
+          Arc::clone(&context),
         );
       }
     });

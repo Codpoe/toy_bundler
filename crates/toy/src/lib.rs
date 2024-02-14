@@ -4,7 +4,9 @@ use config::Config;
 use context::CompilationContext;
 use error::Result;
 use plugin::Plugin;
-use plugins::{resolve::PluginResolve, script::PluginScript};
+use plugins::{
+  modules::PluginModules, resolve::PluginResolve, resources::PluginResources, script::PluginScript,
+};
 
 mod build;
 mod config;
@@ -12,6 +14,7 @@ mod context;
 pub mod error;
 mod generate;
 mod module;
+mod oxc;
 mod plugin;
 mod plugins;
 mod resource;
@@ -29,6 +32,8 @@ impl Compiler {
     let mut final_plugins: Vec<Arc<dyn Plugin>> = vec![
       Arc::new(PluginResolve::new(config.resolve.clone())),
       Arc::new(PluginScript::new()),
+      Arc::new(PluginModules::new()),
+      Arc::new(PluginResources::new()),
     ];
 
     final_plugins.append(&mut plugins);

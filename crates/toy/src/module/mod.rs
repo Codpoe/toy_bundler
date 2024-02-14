@@ -2,7 +2,7 @@ pub mod module;
 pub mod module_graph;
 pub mod module_group;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ResolveKind {
   /// entry input in the config
   Entry,

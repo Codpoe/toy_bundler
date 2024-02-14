@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[derive(Debug, PartialEq)]
 pub struct ModuleGroup {
   /// the entry of the module group
   pub id: String,
@@ -12,8 +13,8 @@ pub struct ModuleGroup {
 impl ModuleGroup {
   pub fn new(id: String) -> Self {
     Self {
-      id,
-      module_ids: vec![],
+      id: id.clone(),
+      module_ids: vec![id],
       resource_pot_ids: vec![],
     }
   }

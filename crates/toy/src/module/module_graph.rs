@@ -9,7 +9,7 @@ use crate::error::{CompilationError, Result};
 
 use super::{module::Module, ResolveKind};
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModuleGraphEdge {
   pub kind: ResolveKind,
   /// the source of this edge, for example, `./index.css`
@@ -107,5 +107,189 @@ impl ModuleGraph {
     deps.sort_by(|a, b| a.1.order.cmp(&b.1.order));
 
     Ok(deps)
+  }
+
+  pub fn is_entry_module(&self, id: &str) -> bool {
+    self.entries.contains(id)
+  }
+
+  /// mock a module graph:
+  /// ```text
+  ///   a  b
+  ///  / \  \
+  /// c  d   e
+  ///  \ /
+  ///   f
+  /// ```
+  /// - static import: `a -> c`, `c -> f`, `d -> f`, `b -> e`
+  /// - dynamic import: `a -> d`
+  #[cfg(test)]
+  pub fn mock_module_graph() -> ModuleGraph {
+    use super::module::ModuleKind;
+
+    let mut module_graph = ModuleGraph::new();
+
+    let module_a = Module::new("a".to_string(), ModuleKind::Js, None);
+    let module_b = Module::new("b".to_string(), ModuleKind::Js, None);
+    let module_c = Module::new("c".to_string(), ModuleKind::Js, None);
+    let module_d = Module::new("d".to_string(), ModuleKind::Js, None);
+    let module_e = Module::new("e".to_string(), ModuleKind::Js, None);
+    let module_f = Module::new("f".to_string(), ModuleKind::Js, None);
+
+    module_graph.add_module(module_a);
+    module_graph.add_module(module_b);
+    module_graph.add_module(module_c);
+    module_graph.add_module(module_d);
+    module_graph.add_module(module_e);
+    module_graph.add_module(module_f);
+
+    module_graph
+      .add_edge(
+        "a",
+        "c",
+        ModuleGraphEdge {
+          kind: ResolveKind::Import,
+          source: "c".to_string(),
+          order: 0,
+        },
+      )
+      .unwrap();
+
+    module_graph
+      .add_edge(
+        "a",
+        "d",
+        ModuleGraphEdge {
+          kind: ResolveKind::DynamicImport,
+          source: "d".to_string(),
+          order: 1,
+        },
+      )
+      .unwrap();
+
+    module_graph
+      .add_edge(
+        "c",
+        "f",
+        ModuleGraphEdge {
+          kind: ResolveKind::Import,
+          source: "f".to_string(),
+          order: 0,
+        },
+      )
+      .unwrap();
+
+    module_graph
+      .add_edge(
+        "d",
+        "f",
+        ModuleGraphEdge {
+          kind: ResolveKind::Import,
+          source: "f".to_string(),
+          order: 0,
+        },
+      )
+      .unwrap();
+
+    module_graph
+      .add_edge(
+        "b",
+        "e",
+        ModuleGraphEdge {
+          kind: ResolveKind::Import,
+          source: "e".to_string(),
+          order: 0,
+        },
+      )
+      .unwrap();
+
+    module_graph
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_module_graph() {
+    let module_graph = ModuleGraph::mock_module_graph();
+
+    let a_deps = module_graph.dependencies("a").unwrap();
+
+    assert_eq!(a_deps.len(), 2);
+
+    assert_eq!(
+      a_deps.get(0).unwrap(),
+      &(
+        "c".to_string(),
+        ModuleGraphEdge {
+          kind: ResolveKind::Import,
+          source: "c".to_string(),
+          order: 0
+        }
+      )
+    );
+
+    assert_eq!(
+      a_deps.get(1).unwrap(),
+      &(
+        "d".to_string(),
+        ModuleGraphEdge {
+          kind: ResolveKind::DynamicImport,
+          source: "d".to_string(),
+          order: 1
+        }
+      )
+    );
+
+    let b_deps = module_graph.dependencies("b").unwrap();
+
+    assert_eq!(b_deps.len(), 1);
+    assert_eq!(
+      b_deps.get(0).unwrap(),
+      &(
+        "e".to_string(),
+        ModuleGraphEdge {
+          kind: ResolveKind::Import,
+          source: "e".to_string(),
+          order: 0
+        }
+      )
+    );
+
+    let c_deps = module_graph.dependencies("c").unwrap();
+
+    assert_eq!(c_deps.len(), 1);
+    assert_eq!(
+      c_deps.get(0).unwrap(),
+      &(
+        "f".to_string(),
+        ModuleGraphEdge {
+          kind: ResolveKind::Import,
+          source: "f".to_string(),
+          order: 0
+        }
+      )
+    );
+
+    let d_deps = module_graph.dependencies("d").unwrap();
+
+    assert_eq!(d_deps.len(), 1);
+    assert_eq!(
+      d_deps.get(0).unwrap(),
+      &(
+        "f".to_string(),
+        ModuleGraphEdge {
+          kind: ResolveKind::Import,
+          source: "f".to_string(),
+          order: 0
+        }
+      )
+    );
+
+    let f_deps = module_graph.dependencies("f").unwrap();
+
+    assert_eq!(f_deps.len(), 0);
   }
 }
