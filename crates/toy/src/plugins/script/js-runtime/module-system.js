@@ -28,7 +28,7 @@
         exports: {},
       };
 
-      moduleFactory(module, module.exports, require, dynamicRequire);
+      moduleFactory(module, require, dynamicRequire);
       cache[id] = module.exports;
 
       return module.exports;

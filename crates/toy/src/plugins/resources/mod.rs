@@ -25,8 +25,9 @@ impl Plugin for PluginResources {
     let root = PathBuf::from(&context.config.root);
     let out_dir = root.join(&context.config.output.dir);
 
-    fs::create_dir_all(out_dir.clone()).unwrap();
-    fs::remove_dir_all(out_dir.clone()).unwrap();
+    if out_dir.exists() {
+      fs::remove_dir_all(out_dir.clone()).unwrap();
+    }
 
     for resource in resources.values_mut() {
       if !resource.emitted {

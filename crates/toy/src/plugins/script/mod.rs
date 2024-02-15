@@ -3,7 +3,7 @@ use std::{boxed::Box, collections::HashMap, fs::read_to_string, sync::Arc};
 use oxc::{
   ast::{
     ast::{
-      BindingIdentifier, Expression, FormalParameterKind, FunctionType, IdentifierName, Modifiers,
+      BindingIdentifier, Expression, FormalParameterKind, FunctionType, Modifiers,
       ObjectPropertyKind, Program, PropertyKind, StringLiteral,
     },
     AstBuilder, Visit, VisitMut,
@@ -16,7 +16,7 @@ use crate::{
   context::CompilationContext,
   error::{CompilationError, Result},
   module::module::{Module, ModuleKind, ModuleMeta, ScriptModuleMeta},
-  oxc::{OxcProgram, OxcProgramWrapper},
+  oxc::OxcProgram,
   plugin::{AnalyzeDepsHookParams, LoadHookParams, LoadHookResult, ParseHookParams, Plugin},
   resource::{
     resource::{Resource, ResourceKind, ResourceMap},
@@ -24,7 +24,7 @@ use crate::{
   },
 };
 
-use self::{deps_visitor::DepsVisitor, runtime_visitor::RuntimeVisitor};
+use self::{deps_visitor::DepsVisitor, esm_visitor::EsmVisitor, runtime_visitor::RuntimeVisitor};
 
 mod deps_visitor;
 mod esm_visitor;
@@ -55,13 +55,7 @@ impl PluginScript {
     ast_builder: &'a AstBuilder<'a>,
     program: Program<'a>,
   ) -> Expression<'a> {
-    let fn_params_item = [
-      "module",
-      "exports",
-      "__toyRequire__",
-      "__toyDynamicRequire__",
-    ]
-    .map(|name| {
+    let fn_params_item = ["__toyModule__", "__toyRequire__", "__toyDynamicRequire__"].map(|name| {
       ast_builder.formal_parameter(
         Span::default(),
         ast_builder.binding_pattern(
@@ -205,9 +199,10 @@ impl Plugin for PluginScript {
 
         for module_id in resource_pot.module_ids.iter() {
           let module = module_graph.module(module_id).unwrap();
-          let program = module.meta.as_script().ast.copy_program();
+          let mut program = module.meta.as_script().ast.copy_program();
+          let mut esm_visitor = EsmVisitor::new(ast_builder, module_id);
 
-          // TODO: esm_visitor
+          esm_visitor.visit_program(&mut program);
 
           modules_object_properties_vec.push(ObjectPropertyKind::ObjectProperty(
             ast_builder.object_property(
