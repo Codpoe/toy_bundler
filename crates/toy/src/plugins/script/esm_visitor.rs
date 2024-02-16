@@ -14,6 +14,8 @@ use oxc::{
   syntax::operator::AssignmentOperator,
 };
 
+use crate::module::module_graph::ModuleGraph;
+
 struct ToyImport {
   source: String,
   kv: HashMap<String, String>,
@@ -47,16 +49,28 @@ pub struct EsmVisitor<'a> {
   js_var_index: usize,
   imports: Vec<ToyImport>,
   exports: Vec<ToyExport>,
+  dep_source_to_module_id: HashMap<String, String>,
 }
 
 impl<'a> EsmVisitor<'a> {
-  pub fn new(ast_builder: &'a AstBuilder<'a>, module_id: &'a str) -> Self {
+  pub fn new(
+    ast_builder: &'a AstBuilder<'a>,
+    module_id: &'a str,
+    module_graph: &ModuleGraph,
+  ) -> Self {
+    let mut dep_source_to_module_id = HashMap::new();
+
+    for (dep_id, edge) in module_graph.dependencies(module_id).unwrap() {
+      dep_source_to_module_id.insert(edge.source, dep_id);
+    }
+
     Self {
       ast_builder,
       module_id,
       js_var_index: 0,
       imports: vec![],
       exports: vec![],
+      dep_source_to_module_id,
     }
   }
 
@@ -370,7 +384,12 @@ impl<'a> EsmVisitor<'a> {
           .ast_builder
           .literal_string_expression(StringLiteral::new(
             Span::default(),
-            import.source.clone().into(),
+            self
+              .dep_source_to_module_id
+              .get(&import.source)
+              .unwrap()
+              .to_string()
+              .into(),
           )),
       )),
       false,

@@ -18,10 +18,7 @@ mod oxc;
 mod plugin;
 mod plugins;
 mod resource;
-
-pub fn add(left: usize, right: usize) -> usize {
-  left + right
-}
+mod utils;
 
 pub struct Compiler {
   context: Arc<CompilationContext>,

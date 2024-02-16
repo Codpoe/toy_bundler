@@ -5,5 +5,6 @@ A toy bundler written in Rust, inspired by [farm](https://github.com/farm-fe/far
 ## TODO
 - [x] basic flow.
 - [x] transform esm to cjs like.
-- [ ] relative module_id.
-- [ ] transform require/dynamicImport id.
+- [x] relative module_id.
+- [x] transform require id.
+- [ ] dynamic import.

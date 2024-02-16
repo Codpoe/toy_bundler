@@ -1,4 +1,4 @@
-use std::{boxed::Box, collections::HashMap, fs::read_to_string, sync::Arc};
+use std::{boxed::Box, collections::HashMap, fs::read_to_string, path::PathBuf, sync::Arc};
 
 use oxc::{
   ast::{
@@ -22,6 +22,7 @@ use crate::{
     resource::{Resource, ResourceKind, ResourceMap},
     resource_pot::{JsResourcePotMeta, ResourcePot, ResourcePotKind, ResourcePotMeta},
   },
+  utils::{fulfill_root_prefix, stripe_root_prefix},
 };
 
 use self::{deps_visitor::DepsVisitor, esm_visitor::EsmVisitor, runtime_visitor::RuntimeVisitor};
@@ -121,16 +122,17 @@ impl Plugin for PluginScript {
   fn load(
     &self,
     params: &LoadHookParams,
-    _context: &Arc<CompilationContext>,
+    context: &Arc<CompilationContext>,
   ) -> Result<Option<LoadHookResult>> {
     let module_kind = ModuleKind::from_file_path(&params.id);
 
     if module_kind.is_script() {
-      let content =
-        read_to_string(params.id.clone()).map_err(|err| CompilationError::LoadError {
-          id: params.id.to_string(),
-          source: Some(Box::new(err)),
-        })?;
+      let path = fulfill_root_prefix(&params.id, &context.config.root);
+
+      let content = read_to_string(path).map_err(|err| CompilationError::LoadError {
+        id: params.id.to_string(),
+        source: Some(Box::new(err)),
+      })?;
 
       return Ok(Some(LoadHookResult {
         content,
@@ -200,7 +202,7 @@ impl Plugin for PluginScript {
         for module_id in resource_pot.module_ids.iter() {
           let module = module_graph.module(module_id).unwrap();
           let mut program = module.meta.as_script().ast.copy_program();
-          let mut esm_visitor = EsmVisitor::new(ast_builder, module_id);
+          let mut esm_visitor = EsmVisitor::new(ast_builder, module_id, &module_graph);
 
           esm_visitor.visit_program(&mut program);
 
@@ -260,19 +262,21 @@ impl Plugin for PluginScript {
   ) -> Result<Option<ResourceMap>> {
     if let ResourcePotMeta::Js(js_resource_pot_meta) = &resource_pot.meta {
       let mut resource_map: ResourceMap = HashMap::new();
+      let resource_id = resource_pot.id.clone();
+      let name = stripe_root_prefix(&resource_id);
 
       resource_map.insert(
-        resource_pot.id.clone(),
+        resource_id.clone(),
         Resource {
-          // name: resource_pot.id.clone(),
-          // TODO
-          name: "test.js".to_string(),
+          name,
           content: js_resource_pot_meta.code.clone(),
           resource_kind: ResourceKind::Js,
           resource_pot_id: resource_pot.id.clone(),
           emitted: false,
         },
       );
+
+      resource_pot.resource_ids.push(resource_id);
 
       return Ok(Some(resource_map));
     }

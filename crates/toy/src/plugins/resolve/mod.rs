@@ -1,4 +1,8 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{
+  collections::HashMap,
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use oxc_resolver::{ResolveOptions, Resolver};
 
@@ -6,6 +10,7 @@ use crate::{
   context::CompilationContext,
   error::{CompilationError, Result},
   plugin::{Plugin, ResolveHookParams, ResolveHookResult},
+  utils::fulfill_root_prefix,
 };
 
 pub struct PluginResolve {
@@ -30,26 +35,30 @@ impl Plugin for PluginResolve {
     params: &ResolveHookParams,
     context: &Arc<CompilationContext>,
   ) -> Result<Option<ResolveHookResult>> {
-    resolve_id(
-      &self.resolver,
-      &params.source,
-      &params
-        .importer
-        .clone()
-        .map(|p| {
-          PathBuf::from(p)
-            .parent()
-            .unwrap()
-            .to_string_lossy()
-            .to_string()
-        })
-        .unwrap_or(context.config.root.clone()),
-    )
-    .map(|v| Some(v))
+    let root = &context.config.root;
+
+    let base = params
+      .importer
+      .as_ref()
+      .map(|importer| {
+        PathBuf::from(fulfill_root_prefix(importer, root))
+          .parent()
+          .unwrap()
+          .to_string_lossy()
+          .to_string()
+      })
+      .unwrap_or(context.config.root.clone());
+
+    resolve_id(&self.resolver, &params.source, &base, &context.config.root).map(|v| Some(v))
   }
 }
 
-fn resolve_id(resolver: &Resolver, source: &str, base: &str) -> Result<ResolveHookResult> {
+fn resolve_id(
+  resolver: &Resolver,
+  source: &str,
+  base: &str,
+  root: &str,
+) -> Result<ResolveHookResult> {
   // extract query
   let (source, query_str) = source.split_once('?').unwrap_or((source, ""));
   let query = parse_query(query_str);
@@ -63,8 +72,11 @@ fn resolve_id(resolver: &Resolver, source: &str, base: &str) -> Result<ResolveHo
         source: Some(Box::new(err)),
       })?;
 
+  let mut id = resolution.path().to_string_lossy().to_string();
+  id = "root:".to_string() + to_relative(&id, root).as_str();
+
   Ok(ResolveHookResult {
-    id: resolution.path().to_string_lossy().to_string(),
+    id,
     query,
     external: false,
   })
@@ -83,6 +95,27 @@ fn parse_query(query_str: &str) -> HashMap<String, String> {
   }
 
   query
+}
+
+/// Convert a path string into a relative path, if it's inside the root.
+/// If it's outside of the root or it's not an absolute path, return it as is.
+fn to_relative(path: &str, root: &str) -> String {
+  let path = Path::new(path);
+  let root = Path::new(root);
+
+  // If the path is not a child of the root, or not absolute, return it as is.
+  if !path.is_absolute() || path == root || !path.starts_with(root) {
+    return path.to_string_lossy().to_string();
+  }
+
+  // Otherwise, it's a child of the root. Convert it into a relative path of the root.
+  let relative = path
+    .strip_prefix(root)
+    .unwrap()
+    .to_string_lossy()
+    .to_string();
+
+  relative
 }
 
 #[cfg(test)]
@@ -119,20 +152,20 @@ mod tests {
       ..ResolveOptions::default()
     });
 
+    let root = fs::canonicalize("../../fixtures/basic")
+      .unwrap()
+      .to_string_lossy()
+      .to_string();
+
     let res = resolve_id(
       &resolver,
       "../../fixtures/basic/index?foo=bar",
       env::current_dir().unwrap().to_str().unwrap(),
+      &root,
     )
     .unwrap();
 
-    assert_eq!(
-      res.id,
-      fs::canonicalize("../../fixtures/basic/index.js")
-        .unwrap()
-        .to_string_lossy()
-        .to_string()
-    );
+    assert_eq!(res.id, "root:index.js");
 
     assert_eq!(res.query.get("foo").unwrap(), "bar");
     assert!(!res.external);
@@ -143,10 +176,11 @@ mod tests {
       &resolver,
       source.parent().unwrap().to_str().unwrap(),
       env::current_dir().unwrap().to_str().unwrap(),
+      &root,
     )
     .unwrap();
 
-    assert_eq!(res.id, source.to_string_lossy().to_string());
+    assert_eq!(res.id, "root:index.js");
 
     assert!(res.query.is_empty());
     assert!(!res.external);
