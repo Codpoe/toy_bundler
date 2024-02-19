@@ -39,6 +39,7 @@
     return {
       register,
       require,
+      dynamicRequire,
     }
   })();
 

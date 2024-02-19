@@ -415,7 +415,7 @@ impl<'a> EsmVisitor<'a> {
             None,
             false,
           ),
-          false,
+          key == value,
           false,
         ),
       );
@@ -478,7 +478,7 @@ impl<'a> EsmVisitor<'a> {
               export_name,
               None,
               false,
-              false,
+              key == value,
               false,
             ),
           ));

@@ -72,8 +72,7 @@ fn resolve_id(
         source: Some(Box::new(err)),
       })?;
 
-  let mut id = resolution.path().to_string_lossy().to_string();
-  id = "root:".to_string() + to_relative(&id, root).as_str();
+  let id = to_relative(resolution.path().to_str().unwrap(), root);
 
   Ok(ResolveHookResult {
     id,
@@ -115,7 +114,7 @@ fn to_relative(path: &str, root: &str) -> String {
     .to_string_lossy()
     .to_string();
 
-  relative
+  "./".to_string() + &relative
 }
 
 #[cfg(test)]
@@ -165,7 +164,7 @@ mod tests {
     )
     .unwrap();
 
-    assert_eq!(res.id, "root:index.js");
+    assert_eq!(res.id, "./index.js");
 
     assert_eq!(res.query.get("foo").unwrap(), "bar");
     assert!(!res.external);
@@ -180,7 +179,7 @@ mod tests {
     )
     .unwrap();
 
-    assert_eq!(res.id, "root:index.js");
+    assert_eq!(res.id, "./index.js");
 
     assert!(res.query.is_empty());
     assert!(!res.external);

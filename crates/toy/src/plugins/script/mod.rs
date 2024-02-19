@@ -22,7 +22,7 @@ use crate::{
     resource::{Resource, ResourceKind, ResourceMap},
     resource_pot::{JsResourcePotMeta, ResourcePot, ResourcePotKind, ResourcePotMeta},
   },
-  utils::{fulfill_root_prefix, stripe_root_prefix},
+  utils::fulfill_root_prefix,
 };
 
 use self::{deps_visitor::DepsVisitor, esm_visitor::EsmVisitor, runtime_visitor::RuntimeVisitor};
@@ -263,15 +263,14 @@ impl Plugin for PluginScript {
     if let ResourcePotMeta::Js(js_resource_pot_meta) = &resource_pot.meta {
       let mut resource_map: ResourceMap = HashMap::new();
       let resource_id = resource_pot.id.clone();
-      let name = stripe_root_prefix(&resource_id);
 
       resource_map.insert(
         resource_id.clone(),
         Resource {
-          name,
+          name: resource_id.clone(),
           content: js_resource_pot_meta.code.clone(),
           resource_kind: ResourceKind::Js,
-          resource_pot_id: resource_pot.id.clone(),
+          resource_pot_id: resource_id.clone(),
           emitted: false,
         },
       );
