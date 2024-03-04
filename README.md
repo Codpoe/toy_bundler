@@ -7,5 +7,6 @@ A toy bundler written in Rust, inspired by [farm](https://github.com/farm-fe/far
 - [x] transform esm to cjs like.
 - [x] relative module_id.
 - [x] transform require id.
+- [ ] WIP: support html.
 - [ ] dynamic import.
 - [ ] support css.
