@@ -5,7 +5,8 @@ use context::CompilationContext;
 use error::Result;
 use plugin::Plugin;
 use plugins::{
-  modules::PluginModules, resolve::PluginResolve, resources::PluginResources, script::PluginScript,
+  html::PluginHtml, modules::PluginModules, resolve::PluginResolve, resources::PluginResources,
+  script::PluginScript,
 };
 
 mod build;
@@ -29,6 +30,7 @@ impl Compiler {
     let mut final_plugins: Vec<Arc<dyn Plugin>> = vec![
       Arc::new(PluginResolve::new(config.resolve.clone())),
       Arc::new(PluginScript::new()),
+      Arc::new(PluginHtml::new()),
       Arc::new(PluginModules::new()),
       Arc::new(PluginResources::new()),
     ];
@@ -66,6 +68,22 @@ mod tests {
           .to_string_lossy()
           .to_string(),
         input: HashMap::from([("main".to_string(), "./index.js".to_string())]),
+        ..Config::default()
+      },
+      vec![],
+    );
+    compiler.compile().unwrap();
+  }
+
+  #[test]
+  fn html_works() {
+    let mut compiler = Compiler::new(
+      Config {
+        root: fs::canonicalize("../../fixtures/html")
+          .unwrap()
+          .to_string_lossy()
+          .to_string(),
+        input: HashMap::from([("main".to_string(), "./index.html".to_string())]),
         ..Config::default()
       },
       vec![],

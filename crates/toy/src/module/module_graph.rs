@@ -27,6 +27,7 @@ pub struct ModuleGraph {
   graph: StableDiGraph<Module, ModuleGraphEdge>,
   id_to_index: HashMap<String, NodeIndex>,
   pub entries: HashSet<String>,
+  pub entries_in_html: HashSet<String>,
 }
 
 impl ModuleGraph {
@@ -35,6 +36,7 @@ impl ModuleGraph {
       graph: StableDiGraph::new(),
       id_to_index: HashMap::new(),
       entries: HashSet::new(),
+      entries_in_html: HashSet::new(),
     }
   }
 
@@ -109,8 +111,14 @@ impl ModuleGraph {
     Ok(deps)
   }
 
-  pub fn is_entry_module(&self, id: &str) -> bool {
-    self.entries.contains(id)
+  pub fn is_entry_module(&self, id: &str, check_entries_in_html: bool) -> bool {
+    let ret = self.entries.contains(id);
+
+    if check_entries_in_html {
+      ret || self.entries_in_html.contains(id)
+    } else {
+      ret
+    }
   }
 
   /// mock a module graph:

@@ -124,6 +124,10 @@ impl Compiler {
         module_graph.entries.insert(module_id.clone());
       }
 
+      if matches!(resolve_hook_params.kind, ResolveKind::ScriptSrc) {
+        module_graph.entries_in_html.insert(module_id.clone());
+      }
+
       if let Some(importer) = resolve_hook_params.importer {
         module_graph
           .add_edge(

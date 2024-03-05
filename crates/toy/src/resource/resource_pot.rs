@@ -3,7 +3,7 @@ use std::{any::Any, collections::HashMap};
 use swc_html::ast::Document;
 
 use crate::{
-  module::module::ModuleKind,
+  module::module::{ModuleKind, ScriptModuleMeta},
   oxc::{OxcProgram, OxcProgramWrapper},
 };
 
@@ -35,6 +35,36 @@ pub enum ResourcePotMeta {
   Css(CssResourcePotMeta),
   Js(JsResourcePotMeta),
   Custom(Box<dyn Any + Send + Sync>),
+}
+
+impl ResourcePotMeta {
+  pub fn as_html(&self) -> &HtmlResourcePotMeta {
+    match self {
+      Self::Html(meta) => meta,
+      _ => unreachable!("ResourcePotMeta `as_html()` failed"),
+    }
+  }
+
+  pub fn as_html_mut(&mut self) -> &mut HtmlResourcePotMeta {
+    match self {
+      Self::Html(meta) => meta,
+      _ => unreachable!("ResourcePotMeta `as_html()` failed"),
+    }
+  }
+
+  pub fn as_css(&self) -> &CssResourcePotMeta {
+    match self {
+      Self::Css(meta) => meta,
+      _ => unreachable!("ResourcePotMeta `as_css()` failed"),
+    }
+  }
+
+  pub fn as_js(&self) -> &JsResourcePotMeta {
+    match self {
+      Self::Js(meta) => meta,
+      _ => unreachable!("ResourcePotMeta `as_js()` failed"),
+    }
+  }
 }
 
 #[derive(Debug)]

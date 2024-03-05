@@ -15,12 +15,14 @@ impl Compiler {
     // analyze_module_graph -> build module_group_map
     let mut module_graph = self.context.module_graph.write().unwrap();
 
-    let mut module_group_map = self
+    let ret_module_group_map = self
       .context
       .plugin_container
       .analyze_module_graph(&mut module_graph, &self.context)?
       .unwrap();
 
+    let mut module_group_map = self.context.module_group_map.write().unwrap();
+    *module_group_map = ret_module_group_map;
     println!(">>> module_group_map {:#?}", module_group_map);
 
     drop(module_graph);
@@ -31,6 +33,8 @@ impl Compiler {
       .plugin_container
       .merge_modules(&mut module_group_map, &self.context)?
       .unwrap();
+
+    drop(module_group_map);
 
     let mut resource_pot_map = self.context.resource_pot_map.write().unwrap();
     *resource_pot_map = ret_resource_pot_map;

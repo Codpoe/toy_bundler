@@ -194,7 +194,7 @@ impl Plugin for PluginScript {
       let module_graph = context.module_graph.write().unwrap();
       let mut modules_object_properties_vec = vec![];
 
-      if module_graph.is_entry_module(&resource_pot.id) {
+      if module_graph.is_entry_module(&resource_pot.id, true) {
         // 入口 JS 模块
         // 遍历 resource_pot 里的每一个模块，用 wrapper 函数包裹模块
         let ast_builder = context.ast_builder.get_ast_builder();
