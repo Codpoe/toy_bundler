@@ -8,5 +8,6 @@ A toy bundler written in Rust, inspired by [farm](https://github.com/farm-fe/far
 - [x] relative module_id.
 - [x] transform require id.
 - [x] support html.
-- [ ] dynamic import.
 - [ ] support css.
+- [ ] dynamic import.
+- [ ] public path.
