@@ -1,7 +1,8 @@
+use lightningcss::stylesheet::StyleSheet;
 use std::{any::Any, collections::HashSet, ffi::OsStr, path::Path};
 use swc_html::ast::Document;
 
-use crate::oxc::{OxcProgram, OxcProgramWrapper};
+use crate::{lightningcss::LightningStyleSheet, oxc::OxcProgram};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModuleKind {
@@ -76,6 +77,13 @@ impl ModuleMeta {
     }
   }
 
+  pub fn as_css_mut(&mut self) -> &mut CssModuleMeta {
+    match self {
+      Self::Css(meta) => meta,
+      _ => unreachable!("ModuleMeta `as_css()` failed"),
+    }
+  }
+
   pub fn as_script(&self) -> &ScriptModuleMeta {
     match self {
       Self::Script(meta) => meta,
@@ -91,7 +99,7 @@ pub struct HtmlModuleMeta {
 
 #[derive(Debug)]
 pub struct CssModuleMeta {
-  pub ast: Box<dyn Any + Send + Sync>,
+  pub ast: LightningStyleSheet,
 }
 
 pub struct ScriptModuleMeta {

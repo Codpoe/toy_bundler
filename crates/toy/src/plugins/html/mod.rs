@@ -178,6 +178,8 @@ impl Plugin for PluginHtml {
           .get(&html_resource_pot.module_group_id)
           .unwrap();
 
+        let mut dep_resource_ids = vec![];
+
         // 收集 html 依赖的资源列表
         for resource_pot_id in module_group.resource_pot_ids() {
           if resource_pot_id == &html_resource_pot.id {
@@ -185,12 +187,10 @@ impl Plugin for PluginHtml {
           }
 
           let dep_resource_pot = resource_pot_map.get(resource_pot_id).unwrap();
-
-          html_to_dep_resource_ids.insert(
-            html_resource_id.to_string(),
-            dep_resource_pot.resource_ids.clone(),
-          );
+          dep_resource_ids.extend(dep_resource_pot.resource_ids.clone());
         }
+
+        html_to_dep_resource_ids.insert(html_resource_id.to_string(), dep_resource_ids);
       }
     }
 

@@ -74,7 +74,8 @@ pub struct HtmlResourcePotMeta {
 
 #[derive(Debug)]
 pub struct CssResourcePotMeta {
-  pub ast: Box<dyn Any + Send + Sync>,
+  pub ast: Option<Box<dyn Any + Send + Sync>>,
+  pub code: String,
 }
 
 #[derive(Debug)]

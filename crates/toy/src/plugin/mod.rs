@@ -70,7 +70,7 @@ pub struct ParseHookParams {
 }
 
 pub struct AnalyzeDepsHookParams<'a> {
-  pub module: &'a Module,
+  pub module: &'a mut Module,
   pub deps: Vec<AnalyzeDep>,
 }
 

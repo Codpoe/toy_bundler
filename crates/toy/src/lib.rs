@@ -5,8 +5,8 @@ use context::CompilationContext;
 use error::Result;
 use plugin::Plugin;
 use plugins::{
-  html::PluginHtml, modules::PluginModules, resolve::PluginResolve, resources::PluginResources,
-  script::PluginScript,
+  css::PluginCss, html::PluginHtml, modules::PluginModules, resolve::PluginResolve,
+  resources::PluginResources, script::PluginScript,
 };
 
 mod build;
@@ -14,6 +14,7 @@ mod config;
 mod context;
 pub mod error;
 mod generate;
+mod lightningcss;
 mod module;
 mod oxc;
 mod plugin;
@@ -31,6 +32,7 @@ impl Compiler {
       Arc::new(PluginResolve::new(config.resolve.clone())),
       Arc::new(PluginScript::new()),
       Arc::new(PluginHtml::new()),
+      Arc::new(PluginCss::new()),
       Arc::new(PluginModules::new()),
       Arc::new(PluginResources::new()),
     ];
@@ -80,6 +82,22 @@ mod tests {
     let mut compiler = Compiler::new(
       Config {
         root: fs::canonicalize("../../fixtures/html")
+          .unwrap()
+          .to_string_lossy()
+          .to_string(),
+        input: HashMap::from([("main".to_string(), "./index.html".to_string())]),
+        ..Config::default()
+      },
+      vec![],
+    );
+    compiler.compile().unwrap();
+  }
+
+  #[test]
+  fn css_works() {
+    let mut compiler = Compiler::new(
+      Config {
+        root: fs::canonicalize("../../fixtures/css")
           .unwrap()
           .to_string_lossy()
           .to_string(),

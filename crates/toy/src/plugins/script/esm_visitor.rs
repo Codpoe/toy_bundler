@@ -102,6 +102,11 @@ impl<'a> EsmVisitor<'a> {
           return None;
         }
 
+        // 忽略样式 import
+        if is_style_import(&import_decl.source) {
+          return None;
+        }
+
         let mut toy_import = ToyImport {
           source: import_decl.source.value.to_string(),
           kv: HashMap::new(),
@@ -243,6 +248,11 @@ impl<'a> EsmVisitor<'a> {
         // 如果是 reexport，则新增 toy_import，
         // 例如：export { foo } from 'mod'
         if let Some(source) = &export_decl.source {
+          // 忽略样式 import
+          if is_style_import(source) {
+            return None;
+          }
+
           toy_import = Some(ToyImport {
             source: source.value.to_string(),
             kv: HashMap::new(),
@@ -338,6 +348,11 @@ impl<'a> EsmVisitor<'a> {
       ModuleDeclaration::ExportAllDeclaration(export_decl) => {
         // 忽略类型导出
         if matches!(export_decl.export_kind, ImportOrExportKind::Type) {
+          return None;
+        }
+
+        // 忽略样式 import
+        if is_style_import(&export_decl.source) {
           return None;
         }
 
@@ -544,4 +559,8 @@ impl<'a> VisitMut<'a> for EsmVisitor<'a> {
       program.body.push(toy_export_stmt);
     }
   }
+}
+
+fn is_style_import(source: &StringLiteral) -> bool {
+  source.value.to_string().ends_with(".css")
 }

@@ -12,7 +12,10 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lightningcss = "1.0.0-alpha.52"
+lightningcss = { version = "1.0.0-alpha.54", features = [
+  "visitor",
+  "into_owned",
+] }
 ouroboros = "0.18.3"
 oxc = { version = "0.6.0", features = ["codegen"] }
 oxc_resolver = "1.4.0"

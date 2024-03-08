@@ -33,7 +33,9 @@ impl VisitMut for ResourcesInjector {
   fn visit_mut_children(&mut self, children: &mut std::vec::Vec<Child>) {
     let mut children_to_remove = vec![];
     // remove all existing <href /> and <script /> deps
-    for (i, child) in children.iter().enumerate() {
+    for (i, child) in children.iter_mut().enumerate() {
+      self.visit_mut_child(child);
+
       if let Child::Element(el) = child {
         if let Some(src_or_href) = get_script_src(el).or_else(|| get_link_href(el)) {
           if self.deps.contains(&src_or_href) {
@@ -49,6 +51,8 @@ impl VisitMut for ResourcesInjector {
   }
 
   fn visit_mut_element(&mut self, el: &mut Element) {
+    self.visit_mut_children(&mut el.children);
+
     if el.tag_name.to_string() == "head" {
       // 注入 css 资源
       for css in &self.css_resources {
@@ -58,12 +62,12 @@ impl VisitMut for ResourcesInjector {
           None,
         )));
       }
-    } else if el.tag_name.to_string() == "body" {
+
       // 注入 js 资源
       for js in &self.js_resources {
         el.children.push(Child::Element(create_element(
           "script",
-          Some(vec![("src", js)]),
+          Some(vec![("defer", ""), ("src", js)]),
           None,
         )));
       }

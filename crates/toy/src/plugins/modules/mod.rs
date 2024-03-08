@@ -7,7 +7,7 @@ use crate::{
   context::CompilationContext,
   error::Result,
   module::{
-    module_graph::ModuleGraph,
+    module_graph::{ModuleGraph, ModuleGraphEdge},
     module_group::{ModuleGroup, ModuleGroupMap},
     ResolveKind,
   },
@@ -121,44 +121,88 @@ fn module_group_from_entry(
     .module_groups
     .insert(module_group.id.clone());
 
+  let mut seen = HashSet::new();
+  let mut static_deps: Vec<String> = vec![];
   let mut dynamic_deps: Vec<String> = vec![];
 
-  let mut seen = HashSet::from([id.clone()]);
+  collect_module_deps(
+    module_graph,
+    &id,
+    &mut static_deps,
+    &mut dynamic_deps,
+    &mut seen,
+  )?;
 
-  for (dep_id, edge) in module_graph.dependencies(&id)? {
+  for dep_id in static_deps {
+    module_group.add_module_id(dep_id.clone());
+    module_graph
+      .module_mut(&dep_id)
+      .unwrap()
+      .module_groups
+      .insert(module_group.id.clone());
+  }
+
+  // for (dep_id, edge) in module_graph.dependencies(&id)? {
+  //   if matches!(edge.kind, ResolveKind::DynamicImport) {
+  //     dynamic_deps.push(dep_id);
+  //   } else {
+  //     let mut queue = VecDeque::from([dep_id.clone()]);
+
+  //     while queue.len() > 0 {
+  //       let head = queue.pop_front().unwrap();
+
+  //       if seen.contains(&head) {
+  //         continue;
+  //       }
+
+  //       seen.insert(head.clone());
+
+  //       module_group.add_module_id(head.clone());
+  //       module_graph
+  //         .module_mut(&dep_id)
+  //         .unwrap()
+  //         .module_groups
+  //         .insert(module_group.id.clone());
+
+  //       println!("@@@ deps {:#?}", module_graph.dependencies(&head)?);
+
+  //       for (dep_id, edge) in module_graph.dependencies(&head)? {
+  //         if matches!(edge.kind, ResolveKind::DynamicImport) {
+  //           dynamic_deps.push(dep_id);
+  //         } else {
+  //           queue.push_back(dep_id);
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+
+  Ok((module_group, dynamic_deps))
+}
+
+fn collect_module_deps(
+  module_graph: &mut ModuleGraph,
+  module_id: &str,
+  static_deps: &mut Vec<String>,
+  dynamic_deps: &mut Vec<String>,
+  seen: &mut HashSet<String>,
+) -> Result<()> {
+  if seen.contains(module_id) {
+    return Ok(());
+  }
+
+  seen.insert(module_id.to_string());
+
+  for (dep_id, edge) in module_graph.dependencies(module_id)? {
     if matches!(edge.kind, ResolveKind::DynamicImport) {
       dynamic_deps.push(dep_id);
     } else {
-      let mut queue = VecDeque::from([dep_id.clone()]);
-
-      while queue.len() > 0 {
-        let head = queue.pop_front().unwrap();
-
-        if seen.contains(&head) {
-          continue;
-        }
-
-        seen.insert(head.clone());
-
-        module_group.add_module_id(head.clone());
-        module_graph
-          .module_mut(&dep_id)
-          .unwrap()
-          .module_groups
-          .insert(module_group.id.clone());
-
-        for (dep_id, edge) in module_graph.dependencies(&head)? {
-          if matches!(edge.kind, ResolveKind::DynamicImport) {
-            dynamic_deps.push(dep_id);
-          } else {
-            queue.push_back(dep_id);
-          }
-        }
-      }
+      static_deps.push(dep_id.clone());
+      collect_module_deps(module_graph, &dep_id, static_deps, dynamic_deps, seen)?;
     }
   }
 
-  Ok((module_group, dynamic_deps))
+  Ok(())
 }
 
 #[cfg(test)]

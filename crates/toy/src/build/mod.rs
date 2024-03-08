@@ -102,11 +102,11 @@ impl Compiler {
         content: transform_result.content,
         module_kind: transform_result.module_kind,
       };
-      let module = call_and_catch_error!(parse, &parse_params, &context).unwrap();
+      let mut module = call_and_catch_error!(parse, &parse_params, &context).unwrap();
 
       // analyze deps
       let mut analyze_deps_params = AnalyzeDepsHookParams {
-        module: &module,
+        module: &mut module,
         deps: vec![],
       };
       call_and_catch_error!(analyze_deps, &mut analyze_deps_params, &context);
